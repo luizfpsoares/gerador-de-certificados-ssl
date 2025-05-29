@@ -48,7 +48,7 @@ type ResServer struct {
 type ResClient struct {
 	Client    string `json:"client"`
 	ClientKey string `json:"client_key"`
-	ServerCsr string `json:"client_csr"`
+	ClientCsr string `json:"client_csr"`
 }
 
 type ResAll struct {

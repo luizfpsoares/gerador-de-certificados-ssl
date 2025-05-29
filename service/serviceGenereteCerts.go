@@ -21,12 +21,12 @@ func GenDir() string {
 	return dir
 }
 
-func GenCA(genCA model.GenCA) (string, string) {
+func GenCA(genCA model.GenCA) (model.ResCa, error) {
 	res := exec.Command("openssl", "genrsa", "-out", genCA.Dir+"/"+genCA.Name+".key", "2048")
 	_, err := res.Output()
 	if err != nil {
 		fmt.Println("Erro ao gerar chave para CA: ", err)
-		return "", ""
+		return model.ResCa{}, err
 	}
 	fmt.Println("CA key gerada com sucesso...")
 
@@ -41,39 +41,46 @@ func GenCA(genCA model.GenCA) (string, string) {
 	_, err = res.CombinedOutput()
 	if err != nil {
 		fmt.Println("Erro ao gerar CA", err)
-		return "", ""
+		return model.ResCa{}, err
 	}
 	fmt.Println("CA gerada com sucesso...")
-	ca, _ := exec.Command("cat", genCA.Dir+"/"+genCA.Name+".crt").Output()
-	caKey, _ := exec.Command("cat", genCA.Dir+"/"+genCA.Name+".key").Output()
-	return string(ca), string(caKey)
+
+	caContent, _ := exec.Command("cat", genCA.Dir+"/"+genCA.Name+".crt").Output()
+	caKeyContent, _ := exec.Command("cat", genCA.Dir+"/"+genCA.Name+".key").Output()
+
+	resCa := model.ResCa{
+		Ca:    string(caContent),
+		CaKey: string(caKeyContent),
+	}
+
+	return resCa, nil
 
 }
 
-func GenServerCert(genServerCert model.GenServerCert) (string, string, string) {
+func GenServerCert(genServerCert model.GenServerCert) (model.ResServer, error) {
 	caFile, err := os.Create("ca.crt")
 	if err != nil {
 		fmt.Println("Erro ao criar o arquivo da CA")
-		return "", "", ""
+		return model.ResServer{}, err
 	}
 	defer caFile.Close()
 	_, err = caFile.WriteString(genServerCert.CaContent)
 	if err != nil {
 		fmt.Println("Erro ao escrever conteúdo da CA")
-		return "", "", ""
+		return model.ResServer{}, err
 	}
 	fmt.Println("Ca importada com sucesso!")
 
 	caKeyFile, err := os.Create("ca.key")
 	if err != nil {
 		fmt.Println("Erro ao criar o arquivo de chave da CA")
-		return "", "", ""
+		return model.ResServer{}, err
 	}
 	defer caKeyFile.Close()
 	_, err = caKeyFile.WriteString(genServerCert.CaKeyContent)
 	if err != nil {
 		fmt.Println("Erro ao escrever conteúdo da chave da CA")
-		return "", "", ""
+		return model.ResServer{}, err
 	}
 	fmt.Println("Ca key importada com sucesso!")
 
@@ -81,7 +88,7 @@ func GenServerCert(genServerCert model.GenServerCert) (string, string, string) {
 	_, err = res.Output()
 	if err != nil {
 		fmt.Println("Erro ao gerar chave para CA")
-		return "", "", ""
+		return model.ResServer{}, err
 	}
 	fmt.Println("CA key gerada com sucesso...")
 
@@ -94,7 +101,7 @@ func GenServerCert(genServerCert model.GenServerCert) (string, string, string) {
 	_, err = res.Output()
 	if err != nil {
 		fmt.Println("Erro ao Gerar CSR do Servidor")
-		return "", "", ""
+		return model.ResServer{}, err
 	}
 	fmt.Println("CSR Gerado com sucesso!")
 
@@ -111,7 +118,7 @@ func GenServerCert(genServerCert model.GenServerCert) (string, string, string) {
 	_, err = res.Output()
 	if err != nil {
 		fmt.Println("Falha ao gerar certificado do servidor")
-		return "", "", ""
+		return model.ResServer{}, err
 	}
 	fmt.Println("Certificado de servidor gerado com sucesso!")
 
@@ -128,33 +135,39 @@ func GenServerCert(genServerCert model.GenServerCert) (string, string, string) {
 		fmt.Println("Erro ao deletar CA Key temporaria: ", err)
 	}
 
-	return string(serverCsr), string(server), string(serverKey)
+	resServer := model.ResServer{
+		Server:    string(server),
+		ServerKey: string(serverKey),
+		ServerCsr: string(serverCsr),
+	}
+
+	return resServer, nil
 }
 
-func GenClientCert(genClientCert model.GenClientCert) (string, string, string) {
+func GenClientCert(genClientCert model.GenClientCert) (model.ResClient, error) {
 	caFile, err := os.Create("ca.crt")
 	if err != nil {
 		fmt.Println("Erro ao criar o arquivo da CA")
-		return "", "", ""
+		return model.ResClient{}, err
 	}
 	defer caFile.Close()
 	_, err = caFile.WriteString(genClientCert.CaContent)
 	if err != nil {
 		fmt.Println("Erro ao escrever conteúdo da CA")
-		return "", "", ""
+		return model.ResClient{}, err
 	}
 	fmt.Println("Ca importada com sucesso!")
 
 	caKeyFile, err := os.Create("ca.key")
 	if err != nil {
 		fmt.Println("Erro ao criar o arquivo de chave da CA")
-		return "", "", ""
+		return model.ResClient{}, err
 	}
 	defer caKeyFile.Close()
 	_, err = caKeyFile.WriteString(genClientCert.CaKeyContent)
 	if err != nil {
 		fmt.Println("Erro ao escrever conteúdo da chave da CA")
-		return "", "", ""
+		return model.ResClient{}, err
 	}
 	fmt.Println("Ca key importada com sucesso!")
 
@@ -162,7 +175,7 @@ func GenClientCert(genClientCert model.GenClientCert) (string, string, string) {
 	_, err = res.Output()
 	if err != nil {
 		fmt.Println("Erro ao gerar chave para CA")
-		return "", "", ""
+		return model.ResClient{}, err
 	}
 	fmt.Println("CA key gerada com sucesso...")
 
@@ -175,7 +188,7 @@ func GenClientCert(genClientCert model.GenClientCert) (string, string, string) {
 	_, err = res.Output()
 	if err != nil {
 		fmt.Println("Erro ao Gerar CSR do Cliente")
-		return "", "", ""
+		return model.ResClient{}, err
 	}
 	fmt.Println("CSR Gerado com sucesso!")
 
@@ -192,7 +205,7 @@ func GenClientCert(genClientCert model.GenClientCert) (string, string, string) {
 	_, err = res.Output()
 	if err != nil {
 		fmt.Println("Falha ao gerar certificado do Cliente")
-		return "", "", ""
+		return model.ResClient{}, err
 	}
 	fmt.Println("Certificado de Cliente gerado com sucesso!")
 
@@ -209,5 +222,11 @@ func GenClientCert(genClientCert model.GenClientCert) (string, string, string) {
 		fmt.Println("Erro ao deletar CA Key temporaria: ", err)
 	}
 
-	return string(clientCsr), string(client), string(clientKey)
+	resClient := model.ResClient{
+		Client:    string(client),
+		ClientKey: string(clientKey),
+		ClientCsr: string(clientCsr),
+	}
+
+	return resClient, nil
 }

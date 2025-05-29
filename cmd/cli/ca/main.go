@@ -15,9 +15,8 @@ func main() {
 		Domain:         "vpn.example.com",
 		Dir:            service.GenDir(),
 	}
-	caData := model.ResCa{}
 
-	caData.Ca, caData.CaKey = service.GenCA(genCa)
+	caData, _ := service.GenCA(genCa)
 
 	fmt.Println(caData)
 
