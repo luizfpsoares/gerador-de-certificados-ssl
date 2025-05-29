@@ -25,13 +25,15 @@ type GenClientCert struct {
 	Dir            string `json:"dir"`
 }
 
-type GenAllCert struct {
-	CaName         string `json:"name"`
-	ServerName     string `json:"server_name"`
-	ClientName     string `json:"client_name"`
-	Domain         string `json:"domain"`
-	ExpirationTime int    `json:"expiration_time"`
-	Dir            string `json:"dir"`
+type GenChain struct {
+	CaName               string `json:"ca_name"`
+	ServerName           string `json:"server_name"`
+	ClientName           string `json:"client_name"`
+	Domain               string `json:"domain"`
+	CaExpirationTime     int    `json:"ca_expiration_time"`
+	ServerExpirationTime int    `json:"server_expiration_time"`
+	ClientExpirationTime int    `json:"client_expiration_time"`
+	Dir                  string `json:"dir"`
 }
 
 type ResCa struct {
@@ -51,7 +53,7 @@ type ResClient struct {
 	ClientCsr string `json:"client_csr"`
 }
 
-type ResAll struct {
+type ResChain struct {
 	Ca        string `json:"ca"`
 	CaKey     string `json:"ca_key"`
 	ServerCsr string `json:"server_csr"`

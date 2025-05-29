@@ -53,6 +53,11 @@ func GenCA(genCA model.GenCA) (model.ResCa, error) {
 		CaKey: string(caKeyContent),
 	}
 
+	_, err = exec.Command("rm", "-rf", "ca.srl").Output()
+	if err != nil {
+		fmt.Println("Erro ao deletar lixo: ", err)
+	}
+
 	return resCa, nil
 
 }
