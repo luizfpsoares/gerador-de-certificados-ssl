@@ -5,6 +5,8 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+
+	"github.com/luizfpsoares/gerador-de-certificados-ssl/model"
 )
 
 func GenDir() string {
@@ -19,43 +21,43 @@ func GenDir() string {
 	return dir
 }
 
-func GenCA(caName string, expirationTime int, domain string, dir string) (string, string) {
-	res := exec.Command("openssl", "genrsa", "-out", dir+"/"+caName+".key", "2048")
+func GenCA(genCA model.GenCA) (string, string) {
+	res := exec.Command("openssl", "genrsa", "-out", genCA.Dir+"/"+genCA.Name+".key", "2048")
 	_, err := res.Output()
 	if err != nil {
-		fmt.Println("Erro ao gerar chave para CA")
+		fmt.Println("Erro ao gerar chave para CA: ", err)
 		return "", ""
 	}
 	fmt.Println("CA key gerada com sucesso...")
 
 	res = exec.Command(
 		"openssl", "req", "-x509", "-new", "-nodes",
-		"-key", dir+"/"+caName+".key",
+		"-key", genCA.Dir+"/"+genCA.Name+".key",
 		"-sha256",
-		"-days", strconv.Itoa(expirationTime),
-		"-out", dir+"/"+caName+".crt",
-		"-subj", "/CN="+domain,
+		"-days", strconv.Itoa(genCA.ExpirationTime),
+		"-out", genCA.Dir+"/"+genCA.Name+".crt",
+		"-subj", "/CN="+genCA.Domain,
 	)
 	_, err = res.CombinedOutput()
 	if err != nil {
-		fmt.Println("Erro ao gerar CA")
+		fmt.Println("Erro ao gerar CA", err)
 		return "", ""
 	}
 	fmt.Println("CA gerada com sucesso...")
-	ca, _ := exec.Command("cat", dir+"/"+caName+".crt").Output()
-	caKey, _ := exec.Command("cat", dir+"/"+caName+".key").Output()
+	ca, _ := exec.Command("cat", genCA.Dir+"/"+genCA.Name+".crt").Output()
+	caKey, _ := exec.Command("cat", genCA.Dir+"/"+genCA.Name+".key").Output()
 	return string(ca), string(caKey)
 
 }
 
-func GenServerCert(crtName string, domain string, ca string, caKey string, expirationTime int, dir string) (string, string, string) {
+func GenServerCert(genServerCert model.GenServerCert) (string, string, string) {
 	caFile, err := os.Create("ca.crt")
 	if err != nil {
 		fmt.Println("Erro ao criar o arquivo da CA")
 		return "", "", ""
 	}
 	defer caFile.Close()
-	_, err = caFile.WriteString(ca)
+	_, err = caFile.WriteString(genServerCert.CaContent)
 	if err != nil {
 		fmt.Println("Erro ao escrever conteúdo da CA")
 		return "", "", ""
@@ -68,14 +70,14 @@ func GenServerCert(crtName string, domain string, ca string, caKey string, expir
 		return "", "", ""
 	}
 	defer caKeyFile.Close()
-	_, err = caKeyFile.WriteString(caKey)
+	_, err = caKeyFile.WriteString(genServerCert.CaKeyContent)
 	if err != nil {
 		fmt.Println("Erro ao escrever conteúdo da chave da CA")
 		return "", "", ""
 	}
 	fmt.Println("Ca key importada com sucesso!")
 
-	res := exec.Command("openssl", "genrsa", "-out", dir+"/"+crtName+".key", "2048")
+	res := exec.Command("openssl", "genrsa", "-out", genServerCert.Dir+"/"+genServerCert.Name+".key", "2048")
 	_, err = res.Output()
 	if err != nil {
 		fmt.Println("Erro ao gerar chave para CA")
@@ -85,9 +87,9 @@ func GenServerCert(crtName string, domain string, ca string, caKey string, expir
 
 	res = exec.Command(
 		"openssl", "req", "-new", "-key",
-		dir+"/"+crtName+".key",
-		"-out", dir+"/"+crtName+".csr",
-		"-subj", "/CN="+domain,
+		genServerCert.Dir+"/"+genServerCert.Name+".key",
+		"-out", genServerCert.Dir+"/"+genServerCert.Name+".csr",
+		"-subj", "/CN="+genServerCert.Domain,
 	)
 	_, err = res.Output()
 	if err != nil {
@@ -98,12 +100,12 @@ func GenServerCert(crtName string, domain string, ca string, caKey string, expir
 
 	res = exec.Command(
 		"openssl", "x509", "-req", "-in",
-		dir+"/"+crtName+".csr",
+		genServerCert.Dir+"/"+genServerCert.Name+".csr",
 		"-CA", "ca.crt",
 		"-CAkey", "ca.key",
 		"-CAcreateserial",
-		"-out", dir+"/"+crtName+".crt",
-		"-days", strconv.Itoa(expirationTime),
+		"-out", genServerCert.Dir+"/"+genServerCert.Name+".crt",
+		"-days", strconv.Itoa(genServerCert.ExpirationTime),
 		"-sha256",
 	)
 	_, err = res.Output()
@@ -113,9 +115,9 @@ func GenServerCert(crtName string, domain string, ca string, caKey string, expir
 	}
 	fmt.Println("Certificado de servidor gerado com sucesso!")
 
-	serverCsr, _ := exec.Command("cat", dir+"/"+crtName+".csr").Output()
-	server, _ := exec.Command("cat", dir+"/"+crtName+".crt").Output()
-	serverKey, _ := exec.Command("cat", dir+"/"+crtName+".key").Output()
+	serverCsr, _ := exec.Command("cat", genServerCert.Dir+"/"+genServerCert.Name+".csr").Output()
+	server, _ := exec.Command("cat", genServerCert.Dir+"/"+genServerCert.Name+".crt").Output()
+	serverKey, _ := exec.Command("cat", genServerCert.Dir+"/"+genServerCert.Name+".key").Output()
 
 	_, err = exec.Command("rm", "-rf", "ca.crt").Output()
 	if err != nil {
@@ -129,14 +131,14 @@ func GenServerCert(crtName string, domain string, ca string, caKey string, expir
 	return string(serverCsr), string(server), string(serverKey)
 }
 
-func GenClientCert(crtName string, domain string, ca string, caKey string, expirationTime int, dir string) (string, string, string) {
+func GenClientCert(genClientCert model.GenClientCert) (string, string, string) {
 	caFile, err := os.Create("ca.crt")
 	if err != nil {
 		fmt.Println("Erro ao criar o arquivo da CA")
 		return "", "", ""
 	}
 	defer caFile.Close()
-	_, err = caFile.WriteString(ca)
+	_, err = caFile.WriteString(genClientCert.CaContent)
 	if err != nil {
 		fmt.Println("Erro ao escrever conteúdo da CA")
 		return "", "", ""
@@ -149,14 +151,14 @@ func GenClientCert(crtName string, domain string, ca string, caKey string, expir
 		return "", "", ""
 	}
 	defer caKeyFile.Close()
-	_, err = caKeyFile.WriteString(caKey)
+	_, err = caKeyFile.WriteString(genClientCert.CaKeyContent)
 	if err != nil {
 		fmt.Println("Erro ao escrever conteúdo da chave da CA")
 		return "", "", ""
 	}
 	fmt.Println("Ca key importada com sucesso!")
 
-	res := exec.Command("openssl", "genrsa", "-out", dir+"/"+crtName+".key", "2048")
+	res := exec.Command("openssl", "genrsa", "-out", genClientCert.Dir+"/"+genClientCert.Name+".key", "2048")
 	_, err = res.Output()
 	if err != nil {
 		fmt.Println("Erro ao gerar chave para CA")
@@ -166,9 +168,9 @@ func GenClientCert(crtName string, domain string, ca string, caKey string, expir
 
 	res = exec.Command(
 		"openssl", "req", "-new", "-key",
-		dir+"/"+crtName+".key",
-		"-out", dir+"/"+crtName+".csr",
-		"-subj", "/CN="+domain,
+		genClientCert.Dir+"/"+genClientCert.Name+".key",
+		"-out", genClientCert.Dir+"/"+genClientCert.Name+".csr",
+		"-subj", "/CN="+genClientCert.Domain,
 	)
 	_, err = res.Output()
 	if err != nil {
@@ -179,12 +181,12 @@ func GenClientCert(crtName string, domain string, ca string, caKey string, expir
 
 	res = exec.Command(
 		"openssl", "x509", "-req", "-in",
-		dir+"/"+crtName+".csr",
+		genClientCert.Dir+"/"+genClientCert.Name+".csr",
 		"-CA", "ca.crt",
 		"-CAkey", "ca.key",
 		"-CAcreateserial",
-		"-out", dir+"/"+crtName+".crt",
-		"-days", strconv.Itoa(expirationTime),
+		"-out", genClientCert.Dir+"/"+genClientCert.Name+".crt",
+		"-days", strconv.Itoa(genClientCert.ExpirationTime),
 		"-sha256",
 	)
 	_, err = res.Output()
@@ -194,9 +196,9 @@ func GenClientCert(crtName string, domain string, ca string, caKey string, expir
 	}
 	fmt.Println("Certificado de Cliente gerado com sucesso!")
 
-	clientCsr, _ := exec.Command("cat", dir+"/"+crtName+".csr").Output()
-	client, _ := exec.Command("cat", dir+"/"+crtName+".crt").Output()
-	clientKey, _ := exec.Command("cat", dir+"/"+crtName+".key").Output()
+	clientCsr, _ := exec.Command("cat", genClientCert.Dir+"/"+genClientCert.Name+".csr").Output()
+	client, _ := exec.Command("cat", genClientCert.Dir+"/"+genClientCert.Name+".crt").Output()
+	clientKey, _ := exec.Command("cat", genClientCert.Dir+"/"+genClientCert.Name+".key").Output()
 
 	_, err = exec.Command("rm", "-rf", "ca.crt").Output()
 	if err != nil {

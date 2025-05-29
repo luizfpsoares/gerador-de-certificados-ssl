@@ -2,7 +2,7 @@ package model
 
 type GenCA struct {
 	Name           string `json:"name"`
-	ExpirationTime string `json:"expiration_time"`
+	ExpirationTime int    `json:"expiration_time"`
 	Domain         string `json:"domain"`
 	Dir            string `json:"dir"`
 }
@@ -12,7 +12,7 @@ type GenServerCert struct {
 	Domain         string `json:"domain"`
 	CaContent      string `json:"ca_content"`
 	CaKeyContent   string `json:"ca_key_content"`
-	ExpirationTime string `json:"expiration_time"`
+	ExpirationTime int    `json:"expiration_time"`
 	Dir            string `json:"dir"`
 }
 
@@ -21,7 +21,7 @@ type GenClientCert struct {
 	Domain         string `json:"domain"`
 	CaContent      string `json:"ca_content"`
 	CaKeyContent   string `json:"ca_key_content"`
-	ExpirationTime string `json:"expiration_time"`
+	ExpirationTime int    `json:"expiration_time"`
 	Dir            string `json:"dir"`
 }
 
@@ -30,7 +30,7 @@ type GenAllCert struct {
 	ServerName     string `json:"server_name"`
 	ClientName     string `json:"client_name"`
 	Domain         string `json:"domain"`
-	ExpirationTime string `json:"expiration_time"`
+	ExpirationTime int    `json:"expiration_time"`
 	Dir            string `json:"dir"`
 }
 
